@@ -1,0 +1,10 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+const digits=(value:string)=>value.replace(/\D/g,"");
+export async function POST(request:Request){
+ const body=await request.json().catch(()=>({}));const orderNumber=String(body.orderNumber||"").trim().toUpperCase();const phone=digits(String(body.phone||""));
+ if(!orderNumber||phone.length<7)return NextResponse.json({error:"Numéro de commande et téléphone valides requis."},{status:400});
+ const order=await prisma.order.findUnique({where:{orderNumber},select:{orderNumber:true,status:true,subtotal:true,deliveryFee:true,total:true,currency:true,shippingName:true,shippingPhone:true,shippingCity:true,shippingAddress:true,createdAt:true,updatedAt:true,sellerOrders:{select:{status:true,seller:{select:{storeName:true}},items:{select:{productName:true,quantity:true,lineTotal:true}},delivery:{select:{status:true,partnerName:true,partnerPhone:true,trackingCode:true,deliveryFee:true,cashConfirmed:true,attemptCount:true,deliveredAt:true,updatedAt:true}}}},payments:{select:{method:true,status:true,amount:true}}}});
+ if(!order||digits(order.shippingPhone)!==phone)return NextResponse.json({error:"Commande introuvable. Vérifiez le numéro et le téléphone."},{status:404});
+ return NextResponse.json({order:{orderNumber:order.orderNumber,status:order.status,subtotal:order.subtotal,deliveryFee:order.deliveryFee,total:order.total,currency:order.currency,shippingName:order.shippingName,shippingPhone:order.shippingPhone,shippingCity:order.shippingCity,shippingAddress:order.shippingAddress,createdAt:order.createdAt.toISOString(),updatedAt:order.updatedAt.toISOString(),payments:order.payments,sellerOrders:order.sellerOrders.map(s=>({status:s.status,sellerName:s.seller.storeName,items:s.items,delivery:s.delivery?{status:s.delivery.status,partnerName:s.delivery.partnerName,partnerPhone:s.delivery.partnerPhone,trackingCode:s.delivery.trackingCode,deliveryFee:s.delivery.deliveryFee,cashConfirmed:s.delivery.cashConfirmed,attemptCount:s.delivery.attemptCount,deliveredAt:s.delivery.deliveredAt?.toISOString()??null,updatedAt:s.delivery.updatedAt.toISOString()}:null}))}});
+}

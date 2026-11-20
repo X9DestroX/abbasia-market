@@ -1,0 +1,1 @@
+ABBASIA.SHOP v0.8 — In-app notifications. See NOTIFICATIONS-v0.8.md for setup. Existing environment files and database records are not included or modified.
